@@ -6,11 +6,12 @@
 package ce
 
 import (
+	"io"
 	"os"
 	"testing"
 )
 
 func TestCheckError(t *testing.T) {
-	CheckError(nil)
+	CheckError(io.EOF)
 }
 ```

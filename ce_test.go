@@ -1,6 +1,7 @@
 package ce
 
 import (
+	"io"
 	"os"
 	"testing"
 )
@@ -13,10 +14,6 @@ func TestPrint(t *testing.T) {
 
 func TestPrintf(t *testing.T) {
 	Printf("%T", 2.2)
-}
-
-func TestCheckError(t *testing.T) {
-	CheckError(nil)
 }
 
 func TestDebug(t *testing.T) {
@@ -33,6 +30,10 @@ func TestInfo(t *testing.T) {
 
 func TestError(t *testing.T) {
 	Error("")
+}
+
+func TestCheckError(t *testing.T) {
+	CheckError(io.EOF)
 }
 
 func TestPanic(t *testing.T) {
