@@ -57,7 +57,22 @@ func Printf(format string, a ...interface{}) {
 	DefaultLogger.Debug("", zap.String("k0", fmt.Sprintf(format, a...)))
 }
 
+type panicByMe struct {
+	err interface{}
+}
+
+func IsFromMe(errByPanic interface{}) bool {
+	_, ok := errByPanic.(*panicByMe)
+	return ok
+}
+
 func CheckError(err error) {
+	defer func() {
+		if errByPanic := recover(); errByPanic != nil {
+			panic(&panicByMe{err: errByPanic})
+		}
+	}()
+
 	if err != nil {
 		DefaultLogger.Panic(err.Error())
 	}
