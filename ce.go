@@ -5,7 +5,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
-	"time"
 )
 
 // code commit hash
@@ -25,9 +24,7 @@ func init() {
 
 func NewLoggerByWrapZap(level zapcore.LevelEnabler, version string, writes ...zapcore.WriteSyncer) *zap.Logger {
 	cfg := zap.NewProductionEncoderConfig()
-	cfg.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendInt64(t.Unix())
-	}
+	cfg.EncodeTime = zapcore.RFC3339TimeEncoder
 
 	var opts []zap.Option
 	opts = append(opts, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zap.ErrorLevel))
