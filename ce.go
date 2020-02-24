@@ -8,7 +8,10 @@ import (
 )
 
 // code commit hash
-var Version string
+var DefaultVersion string
+
+// from that running module
+var DefaultFrom string
 
 var DefaultLogger *zap.Logger
 var DefaultAtomicLevel zap.AtomicLevel
@@ -17,17 +20,22 @@ func init() {
 	DefaultAtomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	DefaultLogger = NewLoggerByWrapZap(
 		DefaultAtomicLevel,
-		Version,
+		zap.ErrorLevel,
+		DefaultFrom,
+		DefaultVersion,
 		zapcore.AddSync(os.Stderr),
 	)
 }
 
-func NewLoggerByWrapZap(level zapcore.LevelEnabler, version string, writes ...zapcore.WriteSyncer) *zap.Logger {
+func NewLoggerByWrapZap(level, levelByStacktrace zapcore.LevelEnabler, from, version string, writes ...zapcore.WriteSyncer) *zap.Logger {
 	cfg := zap.NewProductionEncoderConfig()
 	cfg.EncodeTime = zapcore.RFC3339TimeEncoder
 
 	var opts []zap.Option
-	opts = append(opts, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(zap.ErrorLevel))
+	opts = append(opts, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(levelByStacktrace))
+	if from != "" {
+		opts = append(opts, zap.Fields(zap.String("f", from)))
+	}
 	if version != "" {
 		opts = append(opts, zap.Fields(zap.String("v", version)))
 	}
@@ -58,23 +66,22 @@ func Printf(format string, a ...interface{}) {
 }
 
 type panicByMe struct {
-	err interface{}
+	OriginalErr error
 }
 
-func IsFromMe(errByPanic interface{}) bool {
-	_, ok := errByPanic.(*panicByMe)
-	return ok
+func (p *panicByMe) Error() string {
+	return p.OriginalErr.Error()
+}
+
+func IsFromMe(errByPanic interface{}) (*panicByMe, bool) {
+	me, ok := errByPanic.(*panicByMe)
+	return me, ok
 }
 
 func CheckError(err error) {
-	defer func() {
-		if errByPanic := recover(); errByPanic != nil {
-			panic(&panicByMe{err: errByPanic})
-		}
-	}()
-
 	if err != nil {
-		DefaultLogger.Panic(err.Error())
+		DefaultLogger.Error("CheckError", zap.Error(err))
+		panic(&panicByMe{OriginalErr: err})
 	}
 }
 
