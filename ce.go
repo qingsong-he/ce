@@ -20,7 +20,7 @@ func init() {
 	DefaultAtomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
 	DefaultLogger = NewLoggerByWrapZap(
 		DefaultAtomicLevel,
-		zap.ErrorLevel,
+		zap.PanicLevel,
 		DefaultFrom,
 		DefaultVersion,
 		zapcore.AddSync(os.Stderr),
