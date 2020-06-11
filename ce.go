@@ -80,7 +80,7 @@ func IsFromMe(errByPanic interface{}) (*panicByMe, bool) {
 
 func CheckError(err error) {
 	if err != nil {
-		DefaultLogger.Error("CheckError", zap.Error(err))
+		DefaultLogger.Error("CheckError", zap.Error(err), zap.Stack("callStack"))
 		panic(&panicByMe{OriginalErr: err})
 	}
 }
