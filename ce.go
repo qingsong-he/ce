@@ -56,7 +56,7 @@ func Print(objs ...interface{}) {
 	zapFields := make([]zap.Field, 0, len(objs))
 
 	for i := 0; i < len(objs); i++ {
-		zapFields = append(zapFields, zap.String(fmt.Sprintf("k%d", i), fmt.Sprintf("%#v", objs[i])))
+		zapFields = append(zapFields, zap.Any(fmt.Sprintf("k%d", i), objs[i]))
 	}
 	DefaultLogger.Debug("", zapFields...)
 }
