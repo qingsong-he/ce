@@ -1,7 +1,6 @@
 package ce
 
 import (
-	"fmt"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
@@ -50,19 +49,6 @@ func NewLoggerByWrapZap(level, levelByStacktrace zapcore.LevelEnabler, from, ver
 		),
 		opts...,
 	)
-}
-
-func Print(objs ...interface{}) {
-	zapFields := make([]zap.Field, 0, len(objs))
-
-	for i := 0; i < len(objs); i++ {
-		zapFields = append(zapFields, zap.Any(fmt.Sprintf("k%d", i), objs[i]))
-	}
-	DefaultLogger.Debug("", zapFields...)
-}
-
-func Printf(format string, a ...interface{}) {
-	DefaultLogger.Debug("", zap.String("k0", fmt.Sprintf(format, a...)))
 }
 
 type panicByMe struct {
