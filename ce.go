@@ -1,100 +1,97 @@
 package ce
 
 import (
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
+	"errors"
+	"fmt"
+	"io"
+	"log"
 	"os"
+	"strconv"
+	"time"
 )
 
-// code commit hash
-var DefaultVersion string
+var DefaultCe *ce
+var DefaultCeByCommitHash string
 
-// from that running module
-var DefaultFrom string
-
-var DefaultLogger *zap.Logger
-var DefaultAtomicLevel zap.AtomicLevel
+type ce struct {
+	*log.Logger
+}
 
 func init() {
-	DefaultAtomicLevel = zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	DefaultLogger = NewLoggerByWrapZap(
-		DefaultAtomicLevel,
-		zap.PanicLevel,
-		DefaultFrom,
-		DefaultVersion,
-		zapcore.AddSync(os.Stderr),
-	)
+	DefaultCe = New(os.Stderr, DefaultCeByCommitHash)
 }
 
-func NewLoggerByWrapZap(level, levelByStacktrace zapcore.LevelEnabler, from, version string, writes ...zapcore.WriteSyncer) *zap.Logger {
-	cfg := zap.NewProductionEncoderConfig()
-	cfg.EncodeTime = zapcore.RFC3339TimeEncoder
-
-	var opts []zap.Option
-	opts = append(opts, zap.AddCaller(), zap.AddCallerSkip(1), zap.AddStacktrace(levelByStacktrace))
-	if from != "" {
-		opts = append(opts, zap.Fields(zap.String("f", from)))
+func New(out io.Writer, ceByCodeCommitHash ...string) *ce {
+	if len(ceByCodeCommitHash) == 0 {
+		ceByCodeCommitHash = []string{""}
 	}
-	if version != "" {
-		opts = append(opts, zap.Fields(zap.String("v", version)))
+	_, zoneOffset := time.Now().Zone()
+	zoneOffset = zoneOffset / 3600
+	if out == nil {
+		out = os.Stderr
 	}
-
-	return zap.New(
-		zapcore.NewCore(
-			zapcore.NewJSONEncoder(cfg),
-			zap.CombineWriteSyncers(
-				writes...,
-			),
-			level,
-		),
-		opts...,
-	)
+	return &ce{
+		Logger: log.New(out, ceByCodeCommitHash[0]+"+"+strconv.Itoa(zoneOffset)+" ", log.LstdFlags|log.Lshortfile),
+	}
 }
 
-type panicByMe struct {
-	OriginalErr error
+func Print(v ...interface{}) {
+	DefaultCe.Output(2, fmt.Sprint(v...))
 }
 
-func (p *panicByMe) Error() string {
-	return p.OriginalErr.Error()
+func Printf(format string, v ...interface{}) {
+	DefaultCe.Output(2, fmt.Sprintf(format, v...))
 }
 
-func IsFromMe(errByPanic interface{}) (*panicByMe, bool) {
-	me, ok := errByPanic.(*panicByMe)
-	return me, ok
+func Fatal(v ...interface{}) {
+	DefaultCe.Output(2, fmt.Sprint(v...))
+	os.Exit(1)
+}
+
+func Fatalf(format string, v ...interface{}) {
+	DefaultCe.Output(2, fmt.Sprintf(format, v...))
+	os.Exit(1)
+}
+
+func Panic(v ...interface{}) {
+	s := fmt.Sprint(v...)
+	DefaultCe.Output(2, s)
+	panic(&panicByCe{OriginalErr: errors.New(s)})
+}
+
+func Panicf(format string, v ...interface{}) {
+	s := fmt.Sprintf(format, v...)
+	DefaultCe.Output(2, s)
+	panic(&panicByCe{OriginalErr: errors.New(s)})
 }
 
 func CheckError(err error) {
 	if err != nil {
-		DefaultLogger.Error("CheckError", zap.Error(err))
-		panic(&panicByMe{OriginalErr: err})
+		s := fmt.Sprint(err)
+		DefaultCe.Output(2, s)
+		panic(&panicByCe{OriginalErr: err})
 	}
 }
 
-func Debug(msg string, fields ...zap.Field) {
-	DefaultLogger.Debug(msg, fields...)
-}
-
-func Info(msg string, fields ...zap.Field) {
-	DefaultLogger.Info(msg, fields...)
-}
-
-func Warn(msg string, fields ...zap.Field) {
-	DefaultLogger.Warn(msg, fields...)
-}
-
-func Error(msg string, fields ...zap.Field) {
-	DefaultLogger.Error(msg, fields...)
-}
-
-func Panic(msg string, fields ...zap.Field) {
-	DefaultLogger.Panic(msg, fields...)
-}
-
-func Fatal(msg string, fields ...zap.Field) {
-	DefaultLogger.Fatal(msg, fields...)
+type sync interface {
+	Sync()
 }
 
 func Sync() {
-	DefaultLogger.Sync()
+	if syncObj, ok := DefaultCe.Writer().(sync); ok {
+		syncObj.Sync()
+	}
+}
+
+type panicByCe struct {
+	OriginalErr error
+}
+
+func (p *panicByCe) Error() string {
+	return p.OriginalErr.Error()
+}
+
+func IsFromCe(errByRecover interface{}) (*panicByCe, bool) {
+	me, ok := errByRecover.(*panicByCe)
+	return me, ok
 }
