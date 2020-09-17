@@ -36,7 +36,7 @@ func New(out io.Writer, ceByCodeCommitHash ...string) *ce {
 }
 
 func Print(v ...interface{}) {
-	DefaultCe.Output(2, fmt.Sprint(v...))
+	DefaultCe.Output(2, fmt.Sprintln(v...))
 }
 
 func Printf(format string, v ...interface{}) {
@@ -44,7 +44,7 @@ func Printf(format string, v ...interface{}) {
 }
 
 func Fatal(v ...interface{}) {
-	DefaultCe.Output(2, fmt.Sprint(v...))
+	DefaultCe.Output(2, fmt.Sprintln(v...))
 	os.Exit(1)
 }
 
@@ -54,7 +54,7 @@ func Fatalf(format string, v ...interface{}) {
 }
 
 func Panic(v ...interface{}) {
-	s := fmt.Sprint(v...)
+	s := fmt.Sprintln(v...)
 	DefaultCe.Output(2, s)
 	panic(&panicByCe{OriginalErr: errors.New(s)})
 }
@@ -67,7 +67,7 @@ func Panicf(format string, v ...interface{}) {
 
 func CheckError(err error) {
 	if err != nil {
-		s := fmt.Sprint(err)
+		s := fmt.Sprintln(err)
 		DefaultCe.Output(2, s)
 		panic(&panicByCe{OriginalErr: err})
 	}
