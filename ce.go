@@ -35,6 +35,10 @@ func New(out io.Writer, ceByCodeCommitHash ...string) *ce {
 	}
 }
 
+func SetOutput(w io.Writer) {
+	DefaultCe.SetOutput(w)
+}
+
 func Print(v ...interface{}) {
 	DefaultCe.Output(2, fmt.Sprintln(v...))
 }
